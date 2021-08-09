@@ -18,7 +18,7 @@ public class Footprint : MonoBehaviour
 
     private AudioSource source;
     [SerializeField]
-    private AudioClip normal, beam, bupigan;
+    private AudioClip normal, beam, beamZ, beamSEED, bupigan;
 
     [SerializeField]
     private Text nowLevel, setLevel;
@@ -93,6 +93,16 @@ public class Footprint : MonoBehaviour
     public void Beam(bool isOn)
     {
         if (isOn) source.clip = beam;
+    }
+
+    public void BeamZ(bool isOn)
+    {
+        if (isOn) source.clip = beamZ;
+    }
+
+    public void BeamSEED(bool isOn)
+    {
+        if (isOn) source.clip = beamSEED;
     }
 
     public void Bupigan(bool isOn)
