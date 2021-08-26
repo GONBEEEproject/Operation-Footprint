@@ -9,43 +9,68 @@ public class Footprint : MonoBehaviour
     [SerializeField]
     private Transform cube;
 
-    private float footLevel;
-    private float threshold = 5;
-    private float freez;
+    private float footX, footY, footZ;
+    private float thresX = 2.5f;
+    private float thresY = 2.5f;
+    private float thresZ = 2.5f;
 
-    private const float FREEZTIME = 0.3f;
-    private const int COUNT = 3;
+    private float nowFreeze;
+
+    private float freezeTime = 0.1f;
+    private const int COUNT = 2;
 
     private AudioSource source;
     [SerializeField]
-    private AudioClip normal, beam, beamZ, beamSEED, bupigan;
+    private AudioClip[] sounds;
 
     [SerializeField]
-    private Text nowLevel, setLevel;
+    private Text nowX, nowY, nowZ, setX, setY, setZ, freezeText;
 
-    private Queue<float> sqrAccels = new Queue<float>();
+    private Queue<float> accelsX = new Queue<float>();
+    private Queue<float> accelsY = new Queue<float>();
+    private Queue<float> accelsZ = new Queue<float>();
+
+    public enum Mode
+    {
+        AND, OR
+    }
+
+    private Mode nowMode = Mode.AND;
 
     private void Start()
     {
         Input.gyro.enabled = true;
-        setLevel.text = threshold.ToString("0.000");
+
+        SlideX(2.5f);
+        SlideY(2.5f);
+        SlideZ(2.5f);
+
+        SlideFreeze(0.2f);
 
         source = GetComponent<AudioSource>();
 
         for (int i = 0; i < COUNT; i++)
         {
-            sqrAccels.Enqueue(0);
+            accelsX.Enqueue(0);
+            accelsY.Enqueue(0);
+            accelsZ.Enqueue(0);
         }
     }
 
     private void Update()
     {
-        float x = Input.acceleration.x;
-        float y = Input.acceleration.y;
-        float z = Input.acceleration.z;
+        float x = Mathf.Abs(Input.acceleration.x);
+        float y = Mathf.Abs(Input.acceleration.y);
+        float z = Mathf.Abs(Input.acceleration.z);
 
-        sqrAccels.Dequeue();
-        sqrAccels.Enqueue(Input.acceleration.sqrMagnitude);
+        accelsX.Dequeue();
+        accelsX.Enqueue(x);
+
+        accelsY.Dequeue();
+        accelsY.Enqueue(y);
+
+        accelsZ.Dequeue();
+        accelsZ.Enqueue(z);
 
         cube.rotation = Input.gyro.attitude;
 
@@ -56,57 +81,79 @@ public class Footprint : MonoBehaviour
 
     private void Calc()
     {
-        footLevel = sqrAccels.Average();
-        nowLevel.text = footLevel.ToString("0.000");
+        footX = accelsX.Average();
+        footY = accelsY.Average();
+        footZ = accelsZ.Average();
+
+        nowX.text = footX.ToString("0.000");
+        nowY.text = footY.ToString("0.000");
+        nowZ.text = footZ.ToString("0.000");
     }
 
     private void Check()
     {
-        if (freez >= 0)
+        if (nowFreeze >= 0)
         {
-            freez -= Time.deltaTime;
+            nowFreeze -= Time.deltaTime;
             return;
         }
-        if (footLevel >= threshold)
+
+        switch (nowMode)
         {
-            Shot();
-            freez = FREEZTIME;
+            case Mode.AND:
+                if (footX >= thresX && footY >= thresY && footZ >= thresZ)
+                {
+                    Shot();
+                    nowFreeze = freezeTime;
+                }
+                break;
+            case Mode.OR:
+                if (footX >= thresX || footY >= thresY || footZ >= thresZ)
+                {
+                    Shot();
+                    nowFreeze = freezeTime;
+                }
+                break;
         }
     }
 
-    public void OnSlide(float value)
+    public void SlideX(float value)
     {
-        threshold = value;
-        setLevel.text = threshold.ToString("0.000");
+        thresX = value;
+        setX.text = thresX.ToString("0.000");
     }
 
+    public void SlideY(float value)
+    {
+        thresY = value;
+        setY.text = thresY.ToString("0.000");
+    }
+
+    public void SlideZ(float value)
+    {
+        thresZ = value;
+        setZ.text = thresZ.ToString("0.000");
+    }
+
+    public void SlideFreeze(float value)
+    {
+        freezeTime = value;
+        freezeText.text = freezeTime.ToString("0.000");
+    }
+
+    [ContextMenu("Shot")]
     public void Shot()
     {
         source.PlayOneShot(source.clip);
     }
 
-    public void Normal(bool isOn)
+    public void ChangeSound(int i)
     {
-        if (isOn) source.clip = normal;
+        source.clip = sounds[i];
     }
 
-    public void Beam(bool isOn)
+    public void ChangeMode(int i)
     {
-        if (isOn) source.clip = beam;
-    }
-
-    public void BeamZ(bool isOn)
-    {
-        if (isOn) source.clip = beamZ;
-    }
-
-    public void BeamSEED(bool isOn)
-    {
-        if (isOn) source.clip = beamSEED;
-    }
-
-    public void Bupigan(bool isOn)
-    {
-        if (isOn) source.clip = bupigan;
+        nowMode = (Mode)i;
     }
 }
